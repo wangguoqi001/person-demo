@@ -1,0 +1,180 @@
+单一职责原则【Single Responsibility Principle】
+ 我是“牛”类，我可以担任多职吗？
+单一职责原则简称是 SRP，就是三个开通字母的缩写，这个设计原则备受争议的一个原则，只要你想和
+人争执、怄气或者是吵架，这个原则是屡试不爽的，如果你是老大，看到一个接口或类是这样…那样…设
+计的，你就问一句“你设计的类符合 SRP 原则吗？”，保准立马萎缩掉，而且还一脸崇拜的看着你“老大确
+实英明”，这个原则争论在什么地方呢？就是职责的定义，什么是类的职责，怎么划分类的职责。我们先讲
+个例子来说明什么是单一职责原则。
+只要做过项目，肯定要接触到用户、机构、角色管理这个模块，基本使用都是 RBAC 这个模型，确实是
+很好的一个解决办法，我们今天要讲的是用户管理，管理用户的信息，增加机构（一个人属于多个机构），
+增加角色等，用户有这么的信息和行为要维护，我们就把这些写到一个接口中，都是用户管理类嘛，我们
+先来看类图：
+IUserInfo
+<<interface>>
++public void setUserID(String userID)
++public String getUserID()
++public void setPassword(String password)
++public String getPassword()
++public void setUserName(String userName)
++public String getUserName()
++public boolean changePassword(String oldPassword)
++public boolean deleteUser()
++public void mapUser()
++public boolean addOrg(int orgID)
++public boolean addRole(int roleID)
+UserInfo
+太 easy 的类图了，我相信即使一个初级的程序员也可以看出这个接口设计的有问题，用户的属性
+（Properties）和用户的行为（Behavior）没有分开，这是一个严重的错误！非常正确，确实是这个接口
+设计的一团糟，应该把用户的信息抽取成一个业务对象(Bussiness Object,简称 BO)，把行为抽取成另外一您的设计模式
+第 291 页
+到另外一个接口中，我们把这个类图重新画一下：
+IUserInfo
+<<interface>>
+UserInfo
+IUserBO
+<<interface>>
++public void setUserID(String userID)
++public String getUserID()
++public void setPassword(String password)
++public String getPassword()
++public void setUserName(String userName)
++public String getUserName()
+IUserBiz
+<<interface>>
++public boolean changePassword(IUserBO userBO, String oldPassword)
++public boolean deleteUser(IUserBO userBO)
++public void mapUser(IUserBO userBO)
++public boolean addOrg(IUserBO userBO, int orgID)
++public boolean addRole(IUserBO userBO, int roleID)
+负责用户的属性 负责用户的行为
+重新拆封成两个接口，IUserBO 负责用户的属性，简单的说就是 IUserBO 的职责是收集和反馈用户的属
+性信息；IUserBiz 负责用户的行为，完成用户的信息的维护和变更。各位可能要问了，这个和我实际的工
+作中用到的 User 类还是有差别的呀，别着急，我们先来想一想分拆成两个接口怎么使用，想清楚了，我们
+看是面向的接口编程，所有呀你产生了这个 UserInfo 对象之后，你当然可以把它当 IUserBO 接口使用，当
+然也可以当 IUserBiz 接口使用，这要看你在怎么地方使用了，你要获得用户想信息，你就当时 IUserBO 的
+实现类；你要是想维护用户的信息，就当是 IUserBiz 的实现类就成了，类似于如下代码：
+.......
+IUserBiz userInfo = new UserInfo();
+//我要赋值了，我就认为它是一个纯粹的BO
+IUserBO userBO = (IUserBO)userInfo;
+userBO.setPassword("abc");
+//我要执行动作了，我就认为是一个业务逻辑类
+IUserBiz userBiz = (IUserBiz)userInfo;
+userBiz.deleteUser();
+.......您的设计模式
+第 292 页
+确实可以如此，问题也解决掉了，但是我们来回想一下我们刚刚的动作，为什么要把一个接口拆分成
+两个？其实在实际的使用中，我们更倾向于使用两个不同的类或接口，一个就是 IUserBO， 一个是 IUserBiz，
+类图应该如如下图：
+IUserBO
+<<interface>>
+IUserBiz
+<<interface>>
+UserBO UserBiz
+以上我们把一个接口拆分成两个接口的动作，就是依赖了单一职责原则，那什么是单一职责原则呢？
+单一职责原则：应该有且仅有一个原因引起类的变更
+ 绝杀技，打破你的传统思维
+我解释到这里估计你现在很不屑了，“切！这么简单的东西还要讲？！弱智!”,好，我们来讲点复杂的。
+SRP 的原话解释是：There should never be more than one reason for a class to change。这句话初中
+生都能看懂，不多说，但是看懂是一回事，实施就是另外一回事了，上面我说的例子很好理解，大家已经
+都是这么做了，那我再举个例子来看看是否好理解。举个电话的例子，电话通话的时候有四过程发生：拨
+号、通话、回应、挂机，那我们写一个接口应该如下这个类图：
+IPhone
++public void dial(String phoneNumber)
++public void chat(Object o)
++public void answer(Object o)
++public void huangup()
+我不是有意要冒犯 IPhone 的，同名纯属巧合，我们来看一个接口程序：
+package com.cbf4life.advance;
+/**
+* @author cbf4Life cbf4life@126.com
+* I'm glad to share my knowledge with you all.您的设计模式
+第 293 页
+* 电话的接口
+*/
+public interface IPhone {
+//拨通电话
+public void dial(String phoneNumber);
+//通话
+public void chat(Object o);
+//回应，只有自己说话而没有回应，那算啥？！
+public void answer(Object o);
+//通话完毕，挂电话
+public void huangup();
+}
+实现类我就不再写了，大家看看这个接口有没有问题？我相信大部分的读者都会说这个没有问题呀，
+以前我就是这么做的呀，XXX 这本书上也是这么写的呀，还有什么什么的源码也是这么写的，是的，这个接
+口接近于完美，看清楚了是“接近于”。单一职责要求一个接口或类只有一个原因引起变化，也就是一个接
+口或类只有一个职责，它就负责一件事情，看看上面的接口只负责一件事情吗？是只有一个原因引起变化
+吗？好像不是！
+IPhone 这个接口可不是只有一个职责，它是由两个职责：一个是协议管理，一个是数据传送，diag()
+和 huangup()两个方法实现的是协议管理，拨号接通和关闭；chat()和 answer()是数据的传送，把我们说
+的话转换成模拟信号或者是数字信号传递到对方，然后再把对方传递过来的信号还原成我们听的懂人话。
+我们可以这样考虑这个问题，协议接通的变化会引起这个接口或实现类的变化吗？会的！那数据传送（想
+想看，电话不仅仅可以通电话，还可以上网，Modem 拨号上网呀）的变化会引起这个接口或者实现类的变化
+吗？会的！那就很简单了，这里有两个原因都引起了类的变化，而且这两个职责会相互影响吗？电话通话，
+我只要能接通就成，甭管是 2G 还是 3G 的协议；电话连接后还关心传递的是什么数据吗？不关心，你要是
+乐意使用 56K 的小猫传递一个高清的片子，那也没有问题（顶多有人说你 13 了），也就说我们现在提供的
+这个 IPhone 接口包含了两个职责，而且这两个职责的变化不相互影响，那就考虑拆开成两个接口：您的设计模式
+第 294 页
+IConnectionManager
+<<interface>>
++public void dial(String phoneNumber)
++public void huangup()
+IDataTransfer
+<<interface>>
++public DataTransfer(IConnectionManager connectionManager)
++public void chat(Object o)
++public void answer(Object o)
+Phone
+ConnectionManager DataTransfer
+这个类图看这有点复杂了，完全满足了类和接口的单一职责要求，非常符合标准，但是我相信你在设
+计的时候肯定不会采用这种方式，一个手机类要把把两个 ConnectionManager 和 DataTransfer 组合在一块
+才能使用，组合是一种强耦合关系，你和我都是有共同的生命期，这样的强耦合关系还不如使用接口实现
+的方式呢，而且还增加了类的复杂性，多了两个类呀，好，我们修改一下类图：
+ConnectionManager
+<<interface>>
++public void dial(String phoneNumber)
++public void huangup()
+DataTransfer
+<<interface>>
++public void chat(Object o)
++public void answer(Object o)
+Phone
+这样的设计才是完美的，一个手机实现了两个接口，把两个职责融合一个类中，你会觉得这个 Phone
+有两个原因引起变化了呀，是的是的，但是别忘记了我们是面向接口编程，我们对外公布的是接口而不是
+实现类；而且如果真要实现类的单一职责的话，这个就必须使用了上面组合的方式了，那这个会引起类间
+耦合过重的问题（我们等会再说明这个问题，继续往下看）。那使用了单一职责原则有什么好处呢？
+类的复杂性降低，实现什么职责都有清晰明确的定义；
+可读性提高，复杂性降低，那当然可读性提高了；
+可维护性提高，那当然了，可读性提高，那当然更容易维护了；您的设计模式
+第 295 页
+变更引起的风险降低，变更是必不可少的，接口的单一职责做的好的话，一个接口修改只对相应的实
+现类有影响，与其他的接口无影响，这个是对项目有非常大的帮助。
+讲过这个例子后是不是有点凡反思了，我以前的设计是不是有点的问题了？是的，单一职责原则最难
+划分的就是职责，一个职责一个接口，但是问题是“职责”是一个没有量化的标准，一个类到底要负责那
+些职责？这些职责怎么细化？细化后是否都要有一个接口或类？这个都是需要从实际的项目区考虑的，从
+功能上来说，定义一个 IPhone 接口也没有错，实现了电话的功能呀，而且设计还很简单，就一个接口一个
+实现类，真正的项目我想大家一般都是会这么设计的，从设计原则上来看就有问题了，有两个可以变化的
+原因放到了一个接口中了，这就为以后的变化带来了风险，我从 2G 通讯协议修改到 3G 通讯，你看看你提
+供出的接口 IPhone 是不是要修改了？接口修改对其他的 Invoker 是不是有很大影响？！
+ 我单纯，所有我快乐
+对于接口，我们在设计的时候一定要做到单一，但是对于实现类就需要多方面考虑了，生搬硬套单一
+职责原则会引起类的剧增，给维护带来非常多的麻烦；而且过分的细分类的职责也为人为的制造系统的负
+责性，本来一个类可以实现的行为非要拆成两个，然后使用聚合或组合的方式再耦合在一起，这个是人为
+制造了系统的复杂性，所以原则是死的，人是活的，这句话是非常好的。
+单一职责原则很难在项目中得到体现，非常难，为什么？考虑项目环境，考虑工作量，考虑人员的技
+术水平，考虑硬件的资源情况等等，最终融合的结果是经常违背这一单一原则。而且我们中华文明就有很
+多属于混合型的产物，比如筷子，我们使用筷子可以当做刀来使用，分割食物；还可以当叉使用，把食物
+从盘子中移动到口中；而在西方的文化中，刀就是刀，叉就是叉，你去吃西餐的时候这两样肯定都是有的，
+分工很明晰，刀就是切割食物，叉就是固定食物或者移动食物，这个中国的文化有非常大的关系，中国文
+化就是一个综合性的文化，要求一个人或是一个事物能够满足多个用途，一个人既要求你会技术还要会管
+理，还要会财务，要计算成本呀，这个是从小兵就开始要求了，哎，比较悲哀！我相信如果电脑是中国发
+明的话，肯定是这个样子：CPU、内存、主板、电源全部融合在一起，什么逻辑运算，数据处理，图像显示
+全部放一块，呵呵，有点愤青的成分在里面了。但是我相信随着技术的深入，单一职责原则必然会深入到
+项目的设计中去，而且这个原则是那么的简单，简单的我都不知道该怎么更加详细的去描述，单从字面上
+大家都应该知道是什么意思，单一职责嘛！
+单一职责使用于接口、类，同时也使用方法，什么意思呢？一个方法尽可能做一件事情，比如一个方
+法修改用户密码，别把这个方法放到“修改用户信息”方法中，这个方法的颗粒度很粗，比如这个一个方
+法：您的设计模式
+第 296 页
